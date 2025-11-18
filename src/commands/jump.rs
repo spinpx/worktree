@@ -177,5 +177,22 @@ fn get_available_worktrees(
         }
     }
 
+    // Sort by last modification time (newest first) so that
+    // recently created/updated worktrees appear at the top.
+    use std::fs;
+    use std::time::SystemTime;
+
+    worktrees.sort_by(|(_, _, path_a), (_, _, path_b)| {
+        let modified_a: Option<SystemTime> = fs::metadata(path_a).and_then(|m| m.modified()).ok();
+        let modified_b: Option<SystemTime> = fs::metadata(path_b).and_then(|m| m.modified()).ok();
+
+        match (modified_a, modified_b) {
+            (Some(a), Some(b)) => b.cmp(&a), // newer first
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => std::cmp::Ordering::Equal,
+        }
+    });
+
     Ok(worktrees)
 }
